@@ -1,11 +1,15 @@
 #!/bin/bash
+# intervaltime.sh
+# Chris Vidler - Dyantrace DC RUM SME 2016
+#
 # Change time interval on sample data files
-# Doesn't change the data in any way, just tells the CAS it was collected in a different interval length
+# Doesn't change the data in any way, just tells the CAS it was collected in a different interval length.
+# can make an hour of data look like 1 minute to the CAS, increase load/stress test.
 
 # default config/settings
 
 NEWINT=5	#default interval retime to (5 minutes)
-
+DEBUG=0
 
 
 
@@ -67,13 +71,13 @@ techo "Changing interval time on samples to $NEWINT minutes"
 
 count=0
 for f in *; do
-	if [ -f "$f" ] && [[ $f=~/[a-z0-9]+_[a-f0-9]{8}_[a-f0-9]+_[tb].*]/ ]] ; then
-		f2=$(echo -e "$f" | awk -vnewint="`printf %x $NEWINT`" -F"_" ' /^[a-z0-9]+_[a-f0-9]{8}_[a-f0-9]+_[tb].*/ { OFS="_"; print $1,$2,newint,$4,$5 }')
+	if [ -f "$f" ] && [[ $f=~/[a-z0-9A-Z-%\ _]+_[0-9a-f]{8}_[a-f0-9]+_[tb][_a-z]*/ ]] ; then
+		f2=$(echo -e "$f" | awk -vnewint="`printf %x $NEWINT`" -F"_" ' /^[a-z0-9A-Z\-% _]+_[0-9a-f]{8}_[a-f0-9]+_[tb][_a-z]*/ { OFS="_"; if (NF == 4) { print $1,$2,newint,$4; } else if (NF == 5) { print $1,$2,newint,$4,$5; } else if (NF == 6) { print $1,$2,$3,newint,$5,$6; } }')
 		if [ "$f2" == "" ]; then debugecho "Skipping unknown file [$f]" 1; continue; fi
-		if [ "$f" == "$f2" ]; then debugecho "Skipping already done file [$f}" 1; contine; fi
+		if [ "$f" == "$f2" ]; then debugecho "Skipping already done file [$f}" 1; continue; fi
 		count=$((count+1))
 		debugecho "[$f] [$f2]" 2
-		#mv "$f" "$f2"
+		mv "$f" "$f2"
 	fi
 done
 

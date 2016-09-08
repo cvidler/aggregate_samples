@@ -1,7 +1,11 @@
 #!/bin/bash
-# Change start time of interval on sample data files
+# timestamp.sh
+# Chris Vidler - Dyantrace DC RUM SME 2016
+#
+# Change start time of interval on sample data files, reuse old data.
 
 NEWTS=${1:-}   #new interval time from first parameter - no default, 8 hex characters (epoch time)
+DEBUG=0
 
 #start of code
 
@@ -14,8 +18,8 @@ function techo {
 	echo -e "[`date -u`]: $1"
 }
 
-OPTS=1
-while getopts ":hdi:" OPT; do
+OPTS=0
+while getopts ":hdt:" OPT; do
 	case $OPT in
 		h)
 			OPTS=0
@@ -23,7 +27,7 @@ while getopts ":hdi:" OPT; do
 		d)
 			DEBUG=$((DEBUG+1))
 			;;
-		i)
+		t)
 			OPTS=1
 			NEWTS=$OPTARG
 			;;
@@ -58,12 +62,12 @@ if [ $((0x$NEWTS)) -lt $((`date -u +%s`)) ]; then techo "timestamp in the past, 
 techo "Changing timestamp on sample files to: $NEWTS"
 count=0
 for f in *; do
-	if [[ $f=~/[a-z0-9]+_[a-f0-9]{8}_[a-f0-9]+_[tb].*]/ ]] ; then
-		f2=$(echo -e "$f" | awk -vnewint="$NEWTS" -F"_" ' /^[a-z0-9]+_[a-f0-9]{8}_[a-f0-9]+_[tb].*/ { OFS="_"; print $1,newint,$3,$4,$5 }')
+	if [[ $f=~/[a-z0-9A-Z-%\ _]+_[0-9a-f]{8}_[a-f0-9]+_[tb][_a-z]*/ ]] ; then
+		f2=$(echo -e "$f" | awk -vnewint="$NEWTS" -F"_" ' /^[a-z0-9A-Z\-% _]+_[0-9a-f]{8}_[a-f0-9]+_[tb][_a-z]*/ { OFS="_"; if (NF == 4) { print $1,newint,$3,$4; } else if (NF == 5) { print $1,newint,$3,$4,$5; } else if (NF == 6) { print $1,$2,newint,$4,$5,$6; } }')
 		if [ "$f2" == "" ]; then debugecho "Skipping unknown file [$f]" 2; continue; fi
 		if [ "$f" == "$f2" ]; then debugecho "Skipping existing file [$f]"; continue; fi
 		count=$((count+1))
-		debugecho "[$f] [$f2]"
+		debugecho "[$f] [$f2]" 2
 		mv "$f" "$f2"
     fi
 done

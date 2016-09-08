@@ -4,7 +4,7 @@
 #
 # Aggregate a large number of interval data into one interval
 #
-# Can't do ADS data files, as many of them are binary databases
+# NOTE: Can't do ADS data files, as many of them are binary databases
 #
 
 #defaults
@@ -92,12 +92,12 @@ if [ ! -w "$DESTPATH" ]; then
 fi
 
 #grab list of unique data file types
-TYPES=`ls -1 "$SOURCEPATH" | awk -F"_" ' /^[a-z]+_[a-f0-9]{8}_[a-f0-9]+_[tb].*/ { OFS="_"; print $1,"*",$3,$4,$5 } ' | sort | uniq`
+TYPES=`ls -1 "$SOURCEPATH" | awk -F"_" ' /^[a-z0-9A-Z\-% _]+_[0-9a-f]{8}_[a-f0-9]+_[tb][_a-z]*/ { OFS="_"; if (NF == 4) { print $1,"*",$3,$4; } else if (NF == 5) { print $1,"*",$3,$4,$5; } else if (NF == 6) { print $1,$2,"*",$4,$5,$6; } } ' | sort | uniq`
 
 #determine data interval length 1-30 minutes, zdata file name tells us
 INTLEN=0
 INTLEN=`ls -1 "$SOURCEPATH"/zdata* | head -n 1 | awk -F"_" ' { print $3 } '`
-if [ ! 0x$INTLEN -ge 1 ] && [ ! 0x$INTLEN -le 30 ]; then
+if [ ! $((0x$INTLEN)) -ge 1 ] && [ ! $((0x$INTLEN)) -le 30 ]; then
 	techo "***FATAL: Interval size [$INTLEN] out of range (1-30)."
 	exit 1
 fi
@@ -105,12 +105,6 @@ fi
 debugecho "SOURCEPATH: [$SOURCEPATH], DESTPATH: [$DESTPATH]"
 debugecho "BTS: [$BTS], TSC: [$TSC]"
 debugecho "INTLEN: [$INTLEN], TYPES=[$TYPES] "
-
-#debug: output each file type
-#echo "Types: [$TYPES]"
-#echo "$TYPES" | while read -r FTYPE; do
-#   echo -e "[$FTYPE]"
-#done;
 
 TOT="$(($TSC*0x$INTLEN))"
 techo "Aggregating $TSC Samples ($TOT minutes) to: [$DESTPATH]"
@@ -149,7 +143,7 @@ done
 debugecho "INTLIST: [$INTLIST]"
 
 #build subinterval timestamp list
-if [ 0x$INTLEN -gt 1 ]; then
+if [ $((0x$INTLEN)) -gt 1 ]; then
 	for INC in `seq 0 $((TOT-1))`; do
 		int=$((60*INC))
 		int=`printf %x $((0x${BTS} + $int))`

@@ -15,7 +15,8 @@ DEBUG=0
 
 #config/settings
 OPTS=0
-while getopts ":dhs:o:b:c:" OPT; do
+ALLSAMPLES=0
+while getopts ":dhs:o:b:c:a" OPT; do
 	case $OPT in
 		h)
 			OPTS=0
@@ -40,6 +41,11 @@ while getopts ":dhs:o:b:c:" OPT; do
 			OPTS=1
 			TSC=$OPTARG
 			;;
+        a)
+            #agg all samples
+            OPTS=1
+            ALLSAMPLES=1
+            ;;
 		/?)
 			OPTS=0
 			techo "***FATAL: Invalid argument -$OPTARG."
@@ -60,6 +66,7 @@ if [ $OPTS -eq 0 ]; then
 	echo -e "-b hexts Begin timestamp - UTC unix timestamp in hex e.g. '`printf %x $NOW`'"
 	echo -e "   incorrect timestamps will be rounded down to nearest interval tiemstamp"
 	echo -e "-c count Number of samples/intervals to aggregate"
+    echo -e "-a Aggregate ALL samples in the source path"
 	echo -e "-o outputpath Destination to save aggregated sample. Default [$DESTPATH]."
 	rm -rf $DESTPATH
 	exit 0
@@ -103,8 +110,31 @@ if [ ! $((0x$INTLEN)) -ge 1 ] && [ ! $((0x$INTLEN)) -le 30 ]; then
 fi
 
 debugecho "SOURCEPATH: [$SOURCEPATH], DESTPATH: [$DESTPATH]"
-debugecho "BTS: [$BTS], TSC: [$TSC]"
+debugecho "BTS: [$BTS], TSC: [$TSC], ALLSAMPLES: [$ALLSAMPLES]"
 debugecho "INTLEN: [$INTLEN], TYPES=[$TYPES] "
+
+
+if [ $ALLSAMPLES == 1 ]; then
+    #need to calculate last interval, and then list them.
+    INTS=`ls -1 ${SOURCEPATH}/zdata_*_vol | sort | uniq`
+    FIRSTINT=`echo -e "$INTS" | head -n 1`
+    FIRSTINT=${FIRSTINT##*/}
+    FIRSTINT=${FIRSTINT#*_}
+    FIRSTINT=${FIRSTINT%%_*}
+
+    LASTINT=`echo -e "$INTS" | tail -n 1`
+    LASTINT=${LASTINT##*/}
+    LASTINT=${LASTINT#*_}
+    LASTINT=${LASTINT%%_*}
+
+    debugecho "TSC [$TSC], FIRSTINT [$FIRSTINT], LASTINT [$LASTINT]"
+    TSC=$((0x$LASTINT - 0x$FIRSTINT))
+    INTSECS=$(($INTLEN * 60))
+    TSC=$(($TSC / $INTSECS))
+    TSC=$(($TSC + 1))
+    BTS=$FIRSTINT
+    debugecho "TSC [$TSC], BTS=[$BTS] "
+fi
 
 TOT="$(($TSC*0x$INTLEN))"
 techo "Aggregating $TSC Samples ($TOT minutes) to: [$DESTPATH]"

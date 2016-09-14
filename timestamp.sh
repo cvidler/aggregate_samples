@@ -19,7 +19,8 @@ function techo {
 }
 
 OPTS=0
-while getopts ":hdt:" OPT; do
+NOWTIME=0
+while getopts ":hdt:n" OPT; do
 	case $OPT in
 		h)
 			OPTS=0
@@ -30,6 +31,10 @@ while getopts ":hdt:" OPT; do
 		t)
 			OPTS=1
 			NEWTS=$OPTARG
+			;;
+		n)
+			OPTS=1
+			NOWTIME=1
 			;;
 		/?)
 			OPTS=0
@@ -44,20 +49,43 @@ done
 
 if [ $OPTS -eq 0 ]; then
 	#show help
-	echo -e "Usage: $0 [-h] -t timestamp"
+	echo -e "Usage: $0 [-h] -t timestamp|-n"
 	echo -e "-h Show this help"
 	echo -e "-t timestamp Hex format epoch timestamp e.g.: 57cface0. No Default."
+	echo -e "-n Change timestamps to now, accounting for interval length."
 	exit 0
 fi
 
 
+if [ $NOWTIME == 1 ]; then
+	NEWTS=0
+	#generate a timestamp for 'now' account for interval length, and round up to the future.
 
+	#get intervel length from zdata files
+	INTLEN=0
+	INTLEN=`ls -1 zdata* | head -n 1 | awk -F"_" ' { print $3 } '`
+	if [ ! $((0x$INTLEN)) -ge 1 ] && [ ! $((0x$INTLEN)) -le 30 ]; then
+		techo "***FATAL: Interval size [$INTLEN] out of range (1-30)."
+		exit 1
+	fi
+	INTLEN=$((0x$INTLEN * 60))
+	debugecho "INTLEN: [$INTLEN]"
+
+	NOW=`date -u +%s`
+	debugecho "NOW: [`printf %x $NOW`][`date -d @$NOW +'%Y-%m-%d %T'`]"
+	
+	NOWREM=$(($NOW / $INTLEN))
+	NEWNOW=$(($INTLEN * $NOWREM))
+
+	NEWTS=`printf %x $NEWNOW`
+	debugecho "NEWTS: [$NEWTS][`date -d @$NEWNOW +'%Y-%m-%d %T'`]"
+fi
 
 if [[ ! $NEWTS=~/[a-f0-9]{8}/ ]]; then techo "invalid time stamp [$NEWTS]. aborting"; exit 1; fi
 
 if [ $((0x$NEWTS % 60)) -gt 0 ]; then techo "invalid timestamp, not multiple fo 60 seconds. aborting"; exit 1; fi
 
-if [ $((0x$NEWTS)) -lt $((`date -u +%s`)) ]; then techo "timestamp in the past, probably not what you want."; fi
+#if [ $((0x$NEWTS)) -lt $((`date -u +%s`)) ]; then techo "timestamp in the past, probably not what you want."; fi
 
 techo "Changing timestamp on sample files to: $NEWTS"
 count=0

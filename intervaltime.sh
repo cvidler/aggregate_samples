@@ -1,6 +1,6 @@
 #!/bin/bash
 # intervaltime.sh
-# Chris Vidler - Dyantrace DC RUM SME 2016
+# Chris Vidler - Dynatrace DC RUM SME 2016
 #
 # Change time interval on sample data files
 # Doesn't change the data in any way, just tells the CAS it was collected in a different interval length.

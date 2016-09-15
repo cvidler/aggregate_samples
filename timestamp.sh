@@ -1,6 +1,6 @@
 #!/bin/bash
 # timestamp.sh
-# Chris Vidler - Dyantrace DC RUM SME 2016
+# Chris Vidler - Dynatrace DC RUM SME 2016
 #
 # Change start time of interval on sample data files, reuse old data.
 
@@ -61,7 +61,7 @@ if [ $NOWTIME == 1 ]; then
 	NEWTS=0
 	#generate a timestamp for 'now' account for interval length, and round up to the future.
 
-	#get intervel length from zdata files
+	#get interval length from zdata files
 	INTLEN=0
 	INTLEN=`ls -1 zdata* | head -n 1 | awk -F"_" ' { print $3 } '`
 	if [ ! $((0x$INTLEN)) -ge 1 ] && [ ! $((0x$INTLEN)) -le 30 ]; then
@@ -83,9 +83,9 @@ fi
 
 if [[ ! $NEWTS=~/[a-f0-9]{8}/ ]]; then techo "invalid time stamp [$NEWTS]. aborting"; exit 1; fi
 
-if [ $((0x$NEWTS % 60)) -gt 0 ]; then techo "invalid timestamp, not multiple fo 60 seconds. aborting"; exit 1; fi
+if [ $((0x$NEWTS % 60)) -gt 0 ]; then techo "invalid timestamp, not multiple of 60 seconds. aborting"; exit 1; fi
 
-#if [ $((0x$NEWTS)) -lt $((`date -u +%s`)) ]; then techo "timestamp in the past, probably not what you want."; fi
+if [ $((0x$NEWTS)) -gt $((`date -u +%s`)) ]; then techo "timestamp in the future, probably not what you want."; fi
 
 techo "Changing timestamp on sample files to: $NEWTS"
 count=0

@@ -1,6 +1,6 @@
 #!/bin/bash
 # AMD Sample Aggregation Script
-# Chris Vidler - Dyantrace DC RUM SME 2016
+# Chris Vidler - Dynatrace DC RUM SME 2016
 #
 # Aggregate a large number of interval data into one interval
 #
@@ -8,7 +8,7 @@
 #
 
 #defaults
-SOURCEPATH="/var/spool/adlex/rtm/"
+SOURCEPATH="."
 DESTPATH="`mktemp -d -t aggs.XXXXXXXX`"
 DEBUG=0
 
@@ -59,14 +59,14 @@ done
 
 if [ $OPTS -eq 0 ]; then
 	#show help
-	echo -e "Usage: $0 [-h] -s sourcepath [-o outputpath] -b hexts -c count"
+	echo -e "Usage: $0 [-h] [-s sourcepath] [-o outputpath] -b hexts -c count [-a]"
 	echo -e "-h Show this help"
-	echo -e "-s Source path for files to aggregate"
+	echo -e "-s Source path for files to aggregate, defaults current folder"
 	NOW=`date -u +%s`
-	echo -e "-b hexts Begin timestamp - UTC unix timestamp in hex e.g. '`printf %x $NOW`'"
-	echo -e "   incorrect timestamps will be rounded down to nearest interval tiemstamp"
+	echo -e "-b hexts Begin timestamp - UTC Unix timestamp in hex e.g. '`printf %x $NOW`'"
+	echo -e "   incorrect timestamps will be rounded down to nearest interval timestamp"
 	echo -e "-c count Number of samples/intervals to aggregate"
-    echo -e "-a Aggregate ALL samples in the source path"
+    echo -e "-a Aggregate ALL samples in the source path, exclusive of -b / -c"
 	echo -e "-o outputpath Destination to save aggregated sample. Default [$DESTPATH]."
 	rm -rf $DESTPATH
 	exit 0
@@ -94,7 +94,7 @@ fi
 
 #check dest path
 if [ ! -w "$DESTPATH" ]; then
-	techo "***FATAL: Destination path [$DESTPATH] unwriteable."
+	techo "***FATAL: Destination path [$DESTPATH] not writeable."
 	exit 1
 fi
 
@@ -153,7 +153,7 @@ debugecho "Corrected BTS: [$BTS]"
 
 #count files with starting timestamp, see if there's any there.
 FC=`ls -1 "${SOURCEPATH}"/zdata_${BTS}_* | wc -l`
-debugecho "FS: [$FC]"
+debugecho "FC: [$FC]"
 
 if [ $FC -eq 0 ]; then
 	techo "***FATAL: No data with starting timestamp found."
@@ -183,7 +183,6 @@ fi
 debugecho "SINTLIST: [$SINTLIST]"
 
 #all tests/setup complete
-#exit
 
 #start aggregating
 echo "$TYPES" | while read -r FTYPE; do
@@ -201,7 +200,6 @@ echo "$TYPES" | while read -r FTYPE; do
 		COUNT=$((COUNT + 1))
 		if [ $COUNT -eq 1 ]; then
 			#for the first file, generate destination name (grab the first timestamp)
-			#TS=`echo -e "${FILE##*/}" | grep -Eo "([a-f0-9]{8})" `
 			debugecho "Starting Timestamp: [$BTS]" 3
 			DESTFILE="$DESTPATH/$FTYPE"
 			DESTFILE="${DESTFILE/\*/$BTS}"
